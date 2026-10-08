@@ -1,28 +1,49 @@
 import { useState } from "react";
 import {
   Settings as SettingsIcon,
-  Moon,
-  IndianRupee,
   Trash2,
+  LogOut,
 } from "lucide-react";
 
+import { supabase } from "../lib/supabase.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
+
 function Settings() {
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
+
   const [currency, setCurrency] = useState("INR");
   const [darkMode, setDarkMode] = useState(false);
 
-  const clearData = () => {
-    const confirmClear = window.confirm(
-      "Are you sure you want to delete all investment data?"
+  const clearData = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete all your investment data?"
     );
 
-    if (confirmClear) {
-      localStorage.removeItem("investments");
-      window.location.reload();
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("investments")
+      .delete()
+      .eq("user_id", user.id);
+
+    if (error) {
+      alert(`Failed to clear data: ${error.message}`);
+      return;
     }
+
+    alert("All your investment data has been deleted.");
+  };
+
+  const logout = async () => {
+    await signOut();
+    navigate("/login");
   };
 
   return (
     <div>
+
       <div className="topbar">
         <h1>Settings</h1>
         <p>Manage your portfolio preferences.</p>
@@ -31,8 +52,48 @@ function Settings() {
       <div className="settings-container">
 
         <div className="settings-section">
+
           <div className="settings-heading">
             <SettingsIcon size={22} />
+
+            <div>
+              <h2>Account</h2>
+              <p>Your InvestTrack account information.</p>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>Name</strong>
+              <p>{profile?.full_name || "Not provided"}</p>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>Email</strong>
+              <p>{user?.email}</p>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <div>
+              <strong>Account Type</strong>
+              <p>
+                {profile?.role === "admin"
+                  ? "Administrator"
+                  : "Standard User"}
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <div className="settings-section">
+
+          <div className="settings-heading">
+            <SettingsIcon size={22} />
+
             <div>
               <h2>General Settings</h2>
               <p>Customize your portfolio tracker.</p>
@@ -40,6 +101,7 @@ function Settings() {
           </div>
 
           <div className="setting-row">
+
             <div>
               <strong>Currency</strong>
               <p>Select your portfolio currency.</p>
@@ -51,21 +113,15 @@ function Settings() {
                 setCurrency(e.target.value)
               }
             >
-              <option value="INR">
-                INR (₹)
-              </option>
-
-              <option value="USD">
-                USD ($)
-              </option>
-
-              <option value="EUR">
-                EUR (€)
-              </option>
+              <option value="INR">INR (₹)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
             </select>
+
           </div>
 
           <div className="setting-row">
+
             <div>
               <strong>Dark Mode</strong>
               <p>Change the application appearance.</p>
@@ -83,16 +139,21 @@ function Settings() {
             >
               <span></span>
             </button>
+
           </div>
+
         </div>
 
         <div className="settings-section danger-section">
+
           <div className="settings-heading">
             <Trash2 size={22} />
+
             <div>
               <h2>Data Management</h2>
               <p>
-                Manage your locally stored portfolio data.
+                Delete all investments belonging to
+                your account.
               </p>
             </div>
           </div>
@@ -102,19 +163,30 @@ function Settings() {
             onClick={clearData}
           >
             <Trash2 size={17} />
-            Clear All Investment Data
+            Clear My Investment Data
           </button>
+
+        </div>
+
+        <div className="settings-section">
+
+          <button
+            className="danger-btn"
+            onClick={logout}
+          >
+            <LogOut size={17} />
+            Logout
+          </button>
+
         </div>
 
         <div className="settings-footer">
-          <Moon size={18} />
-          <span>
-            InvestTrack Portfolio Manager
-          </span>
-          <span>Version 1.0.0</span>
+          <span>InvestTrack Portfolio Manager</span>
+          <span>Version 2.0.0</span>
         </div>
 
       </div>
+
     </div>
   );
 }
